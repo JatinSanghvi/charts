@@ -1,0 +1,65 @@
+name: Helm Chart CI (Cosmos DB scaler)
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - .github/workflows/ci-cosmosdb-scaler.yml
+      - cosmosdb-scaler/**
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/ci-cosmosdb-scaler.yml
+      - cosmosdb-scaler/**
+
+jobs:
+  lint-helm-chart:
+    name: Lint Helm chart
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Helm
+        uses: Azure/setup-helm@v1
+
+      - name: Lint 'Cosmos DB scaler' Helm chart
+        run: helm lint ./cosmosdb-scaler/
+
+  deploy-helm-chart:
+    name: Deploy Helm chart
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Helm
+        uses: Azure/setup-helm@v1
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+
+      - name: Show Kubernetes version
+        run: kubectl version
+
+      - name: Show Helm version
+        run: helm version
+
+      - name: Install Keda chart
+        run: helm install keda ./keda/ --namespace keda --create-namespace
+
+      - name: Render 'Cosmos DB scaler' Helm chart template
+        run: helm template cosmosdb-scaler ./cosmosdb-scaler/ --namespace keda
+
+      - name: Install 'Cosmos DB scaler' chart
+        run: helm install cosmosdb-scaler ./cosmosdb-scaler/ --namespace keda --create-namespace
+
+      - name: Get 'Cosmos DB scaler' service
+        run: kubectl get service --namespace=keda keda-external-scaler-azure-cosmos-db
+
+      - name: Get 'Cosmos DB scaler' deployment
+        run: kubectl get deployment --namespace=keda keda-external-scaler-azure-cosmos-db
