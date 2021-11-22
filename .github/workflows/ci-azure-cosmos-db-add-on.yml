@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - test # Remove after testing
     paths:
       - .github/workflows/ci-azure-cosmos-db-add-on.yml
       - azure-cosmos-db-add-on/**
